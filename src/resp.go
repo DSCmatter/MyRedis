@@ -1,3 +1,7 @@
+// Redis serialization protocol specification (RESP)
+// Is a  wire protocol that clients implement
+// To communicate with the Redis server.
+
 package main
 
 import (
@@ -8,6 +12,7 @@ import (
 )
 
 // Writing RESP
+// define constants that represent each type.
 const (
 	STRING  = '+'
 	ERROR   = '-'
@@ -16,6 +21,8 @@ const (
 	ARRAY   = '*'
 )
 
+// define a struct to use in the serialization and deserialization process.
+// which will hold all the commands and arguments we receive from the client.
 type Value struct {
 	typ   string
 	str   string
@@ -24,15 +31,16 @@ type Value struct {
 	array []Value
 }
 
+// The Reader
 type Resp struct {
 	reader *bufio.Reader
 }
 
-// Reader
 func NewResp(rd io.Reader) *Resp {
 	return &Resp{reader: bufio.NewReader(rd)}
 }
 
+// readLine reads the line from the buffer.
 func (r *Resp) readLine() (line []byte, n int, err error) {
 	for {
 		b, err := r.reader.ReadByte()
@@ -47,6 +55,8 @@ func (r *Resp) readLine() (line []byte, n int, err error) {
 	}
 	return line[:len(line)-2], n, nil
 }
+
+// readInteger reads the integer from the buffer.
 
 func (r *Resp) readInteger() (x int, n int, err error) {
 	// read a line and parse it as integer
@@ -134,4 +144,98 @@ func (r *Resp) readBulk() (Value, error) {
 	}
 
 	return v, nil
+}
+
+// Writing RESP (Writing the Value Serializer)
+// Marshal method, which will call the specific method for each type based on the Value type.
+
+func (v Value) Marshal() []byte {
+	switch v.typ {
+	case "array":
+		return v.marshalArray()
+	case "bulk":
+		return v.marshalBulk()
+	case "string":
+		return v.marshalString()
+	case "error":
+		return v.marshalError()
+	case "null":
+		return v.marshalNull()
+	default:
+		return []byte{}
+	}
+}
+
+// Simple Strings
+func (v Value) marshalString() []byte {
+	var bytes []byte
+	bytes = append(bytes, STRING)
+	bytes = append(bytes, v.str...)
+	bytes = append(bytes, '\r', '\n')
+
+	return bytes
+}
+
+// Bulk String
+func (v Value) marshalBulk() []byte {
+	var bytes []byte
+	bytes = append(bytes, BULK)
+	bytes = append(bytes, strconv.Itoa(len(v.bulk))...)
+	bytes = append(bytes, '\r', '\n')
+	bytes = append(bytes, v.bulk...)
+	bytes = append(bytes, '\r', '\n')
+
+	return bytes
+}
+
+// Array
+func (v Value) marshalArray() []byte {
+	length := len(v.array)
+	var bytes []byte
+	bytes = append(bytes, ARRAY)
+	bytes = append(bytes, strconv.Itoa(length)...)
+	bytes = append(bytes, '\r', '\n')
+
+	for i := 0; i < length; i++ {
+		bytes = append(bytes, v.array[i].Marshal()...)
+	}
+
+	return bytes
+}
+
+// Null and Error
+func (v Value) marshalError() []byte {
+	var bytes []byte
+	bytes = append(bytes, ERROR)
+	bytes = append(bytes, v.str...)
+	bytes = append(bytes, '\r', '\n')
+
+	return bytes
+}
+
+func (v Value) marshalNull() []byte {
+	return []byte("$-1\r\n")
+}
+
+// Writer --> writing the bytes from Marshal Method to the writer
+
+// Writer struct that takes io.Writer.
+type Writer struct {
+	writer io.Writer
+}
+
+func NewWriter(w io.Writer) *Writer {
+	return &Writer{writer: w}
+}
+
+// method that takes Value and writes the bytes it gets from the Marshal method to the Writer
+
+func (w *Writer) Write(v Value) error {
+	var bytes = v.Marshal()
+
+	_, err := w.writer.Write(bytes)
+	if err != nil {
+		return err
+	}
+	return nil
 }

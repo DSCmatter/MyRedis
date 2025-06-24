@@ -1,3 +1,5 @@
+// Server Setup
+
 package main
 
 import (
@@ -22,8 +24,9 @@ func main() {
 		return
 	}
 
-	defer conn.Close()
+	defer conn.Close() // // close connection once finished
 
+	// An infinite loop and receive commands from clients and respond to them.
 	for {
 		resp := NewResp(conn)
 		value, err := resp.Read()
@@ -32,9 +35,10 @@ func main() {
 			return
 		}
 
-		fmt.Println(value)
+		_ = value
 
-		// ignore request and send back a PONG
-		conn.Write([]byte("+OK\r\n"))
+		// Example usage of the Writer
+		writer := NewWriter(conn)
+		writer.Write(Value{typ: "string", str: "HOLY SHIT!"})
 	}
 }
