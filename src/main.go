@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 func main() {
@@ -35,10 +36,46 @@ func main() {
 			return
 		}
 
-		_ = value
+		// modify to receive ping command from handler.go
+		if value.typ != "array" {
+			fmt.Println("Invalid request, expected array")
+			continue
+		}
 
-		// Example usage of the Writer
+		if len(value.array) == 0 {
+			fmt.Println("Invalid request, expected array length > 0")
+			continue
+		}
+
+		// Example value object upon setting a name:
+
+		// Value{
+		// 	typ: "array",
+		// 	array: []Value{
+		// 		Value{typ: "bulk", bulk: "SET"},
+		// 		Value{typ: "bulk", bulk: "name"},
+		// 		Value{typ: "bulk", bulk: "Ahmed"},
+		// 	},
+		// }
+
+		// The code above will make the command and args look like this:
+
+		// Perform validations to make sure command is array and not empty.
+		command := strings.ToUpper(value.array[0].bulk) // SET
+		args := value.array[1:]
+
+		// usage of the Writer
 		writer := NewWriter(conn)
-		writer.Write(Value{typ: "string", str: "HOLY SHIT!"})
+
+		handler, ok := Handlers[command]
+
+		if !ok {
+			fmt.Println("Invalid command: ", command)
+			writer.Write(Value{typ: "string", str: ""})
+			continue
+		}
+
+		result := handler(args)
+		writer.Write(result)
 	}
 }
