@@ -3,7 +3,10 @@
 
 package main
 
-import "sync"
+import (
+	"strconv"
+	"sync"
+)
 
 // Define the handler and keep adding commands to it from below:
 var Handlers = map[string]func([]Value) Value{
@@ -13,6 +16,7 @@ var Handlers = map[string]func([]Value) Value{
 	"HSET":    hset,
 	"HGET":    hget,
 	"HGETALL": hgetall,
+	"DEL":     del,
 }
 
 // PING Command:
@@ -142,4 +146,35 @@ func hgetall(args []Value) Value {
 	}
 
 	return Value{typ: "array", array: values}
+}
+
+// DEL command
+func del(args []Value) Value {
+	if len(args) == 0 {
+		return Value{typ: "error", str: "ERR wrong number of arguments for 'del' command"}
+	}
+
+	deleted := 0
+
+	SETsMu.Lock()
+	for _, arg := range args {
+		key := arg.bulk
+		if _, ok := SETs[key]; ok {
+			delete(SETs, key)
+			deleted++
+		}
+	}
+	SETsMu.Unlock()
+
+	HSETsMu.Lock()
+	for _, arg := range args {
+		key := arg.bulk
+		if _, ok := HSETs[key]; ok {
+			delete(HSETs, key)
+			deleted++
+		}
+	}
+	HSETsMu.Unlock()
+
+	return Value{typ: "string", str: strconv.Itoa(deleted)}
 }
