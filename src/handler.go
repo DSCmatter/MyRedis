@@ -17,6 +17,7 @@ var Handlers = map[string]func([]Value) Value{
 	"HGET":    hget,
 	"HGETALL": hgetall,
 	"DEL":     del,
+	"HDEL":    hdel,
 }
 
 // PING Command:
@@ -148,7 +149,7 @@ func hgetall(args []Value) Value {
 	return Value{typ: "array", array: values}
 }
 
-// DEL command
+// DEL command: deletes keys from both SET and HSET.
 func del(args []Value) Value {
 	if len(args) == 0 {
 		return Value{typ: "error", str: "ERR wrong number of arguments for 'del' command"}
@@ -177,4 +178,35 @@ func del(args []Value) Value {
 	HSETsMu.Unlock()
 
 	return Value{typ: "string", str: strconv.Itoa(deleted)}
+}
+
+// HDEL command: deletes a key from a hash.
+func hdel(args []Value) Value {
+	if len(args) < 2 {
+		return Value{typ: "error", str: "ERR wrong number of arguments for 'hdel' command"}
+	}
+
+	hash := args[0].bulk
+	HSETsMu.Lock()
+	defer HSETsMu.Unlock()
+
+	hashMap, exists := HSETs[hash]
+	if !exists {
+		return Value{typ: "string", str: "OK"}
+	}
+
+	deleted := 0
+	for _, key := range args[1:] {
+		if _, ok := hashMap[key.bulk]; ok {
+			delete(hashMap, key.bulk)
+			deleted++
+		}
+	}
+
+	// If hash becomes empty, remove it entirely
+	if len(hashMap) == 0 {
+		delete(HSETs, hash)
+	}
+
+	return Value{typ: "string", str: "OK"}
 }
