@@ -10,10 +10,5 @@ go run *.go &
 # Wait a bit for the server to start
 sleep 2
 
-# Drop into interactive redis-cli
-redis-cli
-
-sleep 2 # sleep again
-
-# Check server with PING
-redis-cli ping
+# Connect to MyRedis server using redis-cli
+redis-cli 

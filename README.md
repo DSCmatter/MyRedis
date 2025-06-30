@@ -59,6 +59,10 @@ A shell script `runMyRedis.sh` is included to simplify running and testing:
 ```bash
 chmod +x runMyRedis.sh
 ./runMyRedis.sh
+
+OR
+
+bash runMyRedis.sh
 ```
 This script stops any existing Redis instance, runs MyRedis, waits briefly, then connects with `redis-cli`.
 
