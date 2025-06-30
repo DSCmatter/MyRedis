@@ -13,7 +13,7 @@ Your own miniature redis written in Go.
 ## Features
 
 - A Redis clone that lets you store and retrieve strings and hashes and delete them.
-- Parse RESP (REdis Serialization Protocol) to handle commands and send responses.
+- Parse RESP (Redis Serialization Protocol) to handle commands and send responses.
 - Handle multiple client connections simultaneously using goroutines.
 - Persist data to disk using an Append Only File (AOF) so the server can recover after crashes or restarts.
 - Accept and manage client connections with simple networking.
@@ -40,6 +40,10 @@ cd src/
 
 ### Running MyRedis
 
+You can run the server manually or use the provided shell script.
+
+#### Manually
+
 ```bash
 sudo snap stop redis 
 go run *.go // runs all files in the directory 
@@ -47,6 +51,16 @@ redis-cli ping // will output with PONG
 ```
 
 By default, the server runs on `6379`.
+
+#### Using Shell Script
+
+A shell script `runMyRedis.sh` is included to simplify running and testing:
+
+```bash
+chmod +x runMyRedis.sh
+./runMyRedis.sh
+```
+This script stops any existing Redis instance, runs MyRedis, waits briefly, then connects with `redis-cli`.
 
 ---
 
@@ -60,7 +74,7 @@ redis-cli
 
 Try basic commands:
 
-```bash
+```
 set name leon
 get name
 del name
